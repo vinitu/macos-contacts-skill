@@ -8,6 +8,12 @@ AI agent skill for managing macOS Contacts.app — search, view, create, edit, a
 npx skills add vinitu/macos-contacts-skill
 ```
 
+Or with [skills.sh](https://skills.sh):
+
+```bash
+skills.sh add vinitu/macos-contacts-skill
+```
+
 ## What it does
 
 This skill gives AI agents (Claude Code, Cursor, Copilot, etc.) the ability to:
@@ -168,7 +174,7 @@ bash scripts/contacts.sh doctor
 |--------|---------|
 | `scripts/contacts.sh` | Main CLI dispatcher — stable command interface |
 | `scripts/contacts/*.applescript` | Command entrypoints used by the CLI wrapper |
-| `scripts/smoke-test.sh` | Read-only smoke test for JSON output and exit codes |
+| `tests/smoke_contacts.sh` | Read-only smoke test for JSON output and exit codes |
 
 ## Output
 
