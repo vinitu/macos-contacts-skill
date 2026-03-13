@@ -8,7 +8,8 @@ description: Manage macOS Contacts.app — search, view, create, edit, and delet
 ## Overview
 - Manages macOS Contacts.app through AppleScript.
 - No external dependencies — uses only bash and osascript.
-- Main helper script: `scripts/contacts.sh`.
+- Main CLI wrapper: `scripts/contacts.sh`.
+- Command entrypoints: `scripts/contacts/*.applescript`.
 - All commands return JSON for agent consumption.
 
 ## Quick Start

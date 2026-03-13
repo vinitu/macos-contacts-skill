@@ -35,7 +35,9 @@ jobs:
             LICENSE
             README.md
             SKILL.md
+            Makefile
             scripts/contacts.sh
+            tests/dictionary_contract.sh
           )
           for path in "${required[@]}"; do
             [ -f "$path" ] || { echo "::error file=$path::Missing required file"; exit 1; }
@@ -45,10 +47,13 @@ jobs:
         run: |
           set -euo pipefail
           if command -v shellcheck >/dev/null 2>&1; then
-            shellcheck scripts/*.sh
+            shellcheck scripts/*.sh tests/*.sh
           else
             echo "shellcheck not available, skipping"
           fi
+
+      - name: Run dictionary contract
+        run: bash tests/dictionary_contract.sh
 
       - name: Validate SKILL.md frontmatter
         run: |
@@ -66,6 +71,9 @@ jobs:
             exit 1
           fi
           echo "SKILL.md frontmatter is valid"
+
+      - name: Run tests
+        run: make test
 
   determine_version:
     name: Detect version bump

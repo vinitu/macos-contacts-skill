@@ -1,5 +1,5 @@
 #!/bin/bash
-# Manage macOS Contacts.app via AppleScript / JXA.
+# Manage macOS Contacts.app via AppleScript.
 # Usage:
 #   contacts.sh search [--field name|phone|email|org|all] [--limit N] [--exact] <query>
 #   contacts.sh get [--id <contact-id>] <full-name>
@@ -11,6 +11,8 @@
 #   contacts.sh doctor
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 json_escape() {
   local s="${1-}"
@@ -33,7 +35,14 @@ require_option_value() {
   [ -n "$value" ] || json_error "Missing value for $flag"
 }
 
-run_jxa() {
+validate_positive_int() {
+  local flag="$1"
+  local value="$2"
+  [[ "$value" =~ ^[0-9]+$ ]] || json_error "Invalid $flag: $value"
+  [ "$value" -ge 1 ] || json_error "Invalid $flag: $value"
+}
+
+run_applescript() {
   local output
 
   if ! output="$("$@" 2>&1)"; then
@@ -47,6 +56,16 @@ run_jxa() {
       exit 1
       ;;
   esac
+}
+
+run_contacts_applescript() {
+  local operation="$1"
+  shift
+
+  local script_path="$SCRIPT_DIR/contacts/${operation}.applescript"
+  [ -f "$script_path" ] || json_error "Missing AppleScript entrypoint: $script_path"
+
+  run_applescript osascript "$script_path" "$@"
 }
 
 cmd_search() {
@@ -86,195 +105,15 @@ cmd_search() {
   local query="${*:-}"
   [ -z "$query" ] && json_error "Usage: contacts.sh search [--field name|phone|email|org|all] [--limit N] [--exact] <query>"
 
-  run_jxa osascript -l JavaScript - "$query" "$field" "$limit" "$exact" <<'EOF'
-function normalizeLabel(label) {
-  const raw = String(label || "");
-  const known = {
-    "_$!<Mobile>!$_": "mobile",
-    "_$!<Home>!$_": "home",
-    "_$!<Work>!$_": "work",
-    "_$!<Main>!$_": "main",
-    "_$!<Other>!$_": "other",
-    "_$!<HomePage>!$_": "homepage",
-    "_$!<School>!$_": "school",
-    "_$!<iPhone>!$_": "iphone",
-    "Phone": "phone"
-  };
+  case "$field" in
+    all|name|phone|email|org|organization) ;;
+    *) json_error "Invalid --field: $field" ;;
+  esac
 
-  if (Object.prototype.hasOwnProperty.call(known, raw)) {
-    return known[raw];
-  }
+  [ "$field" = "organization" ] && field="org"
+  validate_positive_int "--limit" "$limit"
 
-  const tokenMatch = raw.match(/^_\$!<(.*)>!\$_$/);
-  if (tokenMatch) {
-    return tokenMatch[1].toLowerCase().replace(/\s+/g, "-");
-  }
-
-  return raw.toLowerCase().replace(/\s+/g, "-");
-}
-
-function personEntry(person) {
-  const entry = {
-    id: person.id(),
-    name: person.name()
-  };
-
-  try {
-    const phones = person.phones();
-    if (phones.length > 0) {
-      entry.phones = phones.map(phone => ({
-        label: normalizeLabel(phone.label()),
-        value: phone.value()
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const emails = person.emails();
-    if (emails.length > 0) {
-      entry.emails = emails.map(email => ({
-        label: normalizeLabel(email.label()),
-        value: email.value()
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const organization = person.organization();
-    if (organization) {
-      entry.organization = organization;
-    }
-  } catch (error) {}
-
-  return entry;
-}
-
-function addUnique(target, seen, person) {
-  const personId = person.id();
-  if (seen.has(personId)) {
-    return false;
-  }
-  seen.add(personId);
-  target.push(person);
-  return true;
-}
-
-function matchesValue(value, query, exact) {
-  if (!value) {
-    return false;
-  }
-
-  const left = String(value).toLowerCase();
-  const right = query.toLowerCase();
-  return exact ? left === right : left.includes(right);
-}
-
-function run(argv) {
-  const [rawQuery, fieldArg, limitArg, exactArg] = argv;
-  const query = rawQuery || "";
-  const field = String(fieldArg || "all").toLowerCase();
-  const exact = exactArg === "true";
-  const limit = Number(limitArg);
-  const validFields = new Set(["all", "name", "phone", "email", "org", "organization"]);
-
-  if (!validFields.has(field)) {
-    return JSON.stringify({success: false, error: "Invalid --field: " + fieldArg});
-  }
-
-  if (!Number.isInteger(limit) || limit < 1) {
-    return JSON.stringify({success: false, error: "Invalid --limit: " + limitArg});
-  }
-
-  const normalizedField = field === "organization" ? "org" : field;
-  const detailLikeQuery = /[@+0-9]/.test(query);
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  const matches = [];
-  const seen = new Set();
-
-  if (normalizedField === "name" || normalizedField === "all") {
-    const nameMatches = exact
-      ? app.people.whose({name: query})()
-      : app.people.whose({name: {_contains: query}})();
-
-    for (const person of nameMatches) {
-      addUnique(matches, seen, person);
-      if (matches.length >= limit) {
-        break;
-      }
-    }
-  }
-
-  if ((normalizedField === "org" || normalizedField === "all") && matches.length < limit) {
-    const organizationMatches = exact
-      ? app.people.whose({organization: query})()
-      : app.people.whose({organization: {_contains: query}})();
-
-    for (const person of organizationMatches) {
-      addUnique(matches, seen, person);
-      if (matches.length >= limit) {
-        break;
-      }
-    }
-  }
-
-  const shouldScanDetailFields =
-    normalizedField === "phone" ||
-    normalizedField === "email" ||
-    (normalizedField === "all" && detailLikeQuery);
-
-  if (shouldScanDetailFields && matches.length < limit) {
-    const people = app.people();
-
-    for (const person of people) {
-      if (matches.length >= limit) {
-        break;
-      }
-
-      if (seen.has(person.id())) {
-        continue;
-      }
-
-      let matched = false;
-
-      if (normalizedField === "phone" || normalizedField === "all") {
-        try {
-          for (const phone of person.phones()) {
-            if (matchesValue(phone.value(), query, exact)) {
-              matched = true;
-              break;
-            }
-          }
-        } catch (error) {}
-      }
-
-      if (!matched && (normalizedField === "email" || normalizedField === "all")) {
-        try {
-          for (const email of person.emails()) {
-            if (matchesValue(email.value(), query, exact)) {
-              matched = true;
-              break;
-            }
-          }
-        } catch (error) {}
-      }
-
-      if (matched) {
-        addUnique(matches, seen, person);
-      }
-    }
-  }
-
-  return JSON.stringify({
-    success: true,
-    count: matches.length,
-    limit: limit,
-    data: matches.map(personEntry)
-  }, null, 2);
-}
-EOF
+  run_contacts_applescript search "$query" "$field" "$limit" "$exact"
 }
 
 cmd_get() {
@@ -308,144 +147,7 @@ cmd_get() {
 
   [ -z "$selector" ] && json_error "Usage: contacts.sh get [--id <contact-id>] <full-name>"
 
-  run_jxa osascript -l JavaScript - "$selector_mode" "$selector" <<'EOF'
-function normalizeLabel(label) {
-  const raw = String(label || "");
-  const known = {
-    "_$!<Mobile>!$_": "mobile",
-    "_$!<Home>!$_": "home",
-    "_$!<Work>!$_": "work",
-    "_$!<Main>!$_": "main",
-    "_$!<Other>!$_": "other",
-    "_$!<HomePage>!$_": "homepage",
-    "_$!<School>!$_": "school",
-    "_$!<iPhone>!$_": "iphone",
-    "Phone": "phone"
-  };
-
-  if (Object.prototype.hasOwnProperty.call(known, raw)) {
-    return known[raw];
-  }
-
-  const tokenMatch = raw.match(/^_\$!<(.*)>!\$_$/);
-  if (tokenMatch) {
-    return tokenMatch[1].toLowerCase().replace(/\s+/g, "-");
-  }
-
-  return raw.toLowerCase().replace(/\s+/g, "-");
-}
-
-function personEntry(person) {
-  const entry = {
-    id: person.id(),
-    name: person.name()
-  };
-
-  try {
-    const firstName = person.firstName();
-    if (firstName) {
-      entry.firstName = firstName;
-    }
-  } catch (error) {}
-
-  try {
-    const lastName = person.lastName();
-    if (lastName) {
-      entry.lastName = lastName;
-    }
-  } catch (error) {}
-
-  try {
-    const phones = person.phones();
-    if (phones.length > 0) {
-      entry.phones = phones.map(phone => ({
-        label: normalizeLabel(phone.label()),
-        value: phone.value()
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const emails = person.emails();
-    if (emails.length > 0) {
-      entry.emails = emails.map(email => ({
-        label: normalizeLabel(email.label()),
-        value: email.value()
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const addresses = person.addresses();
-    if (addresses.length > 0) {
-      entry.addresses = addresses.map(address => ({
-        label: normalizeLabel(address.label()),
-        street: address.street() || "",
-        city: address.city() || "",
-        zip: address.zip() || "",
-        country: address.country() || ""
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const organization = person.organization();
-    if (organization) {
-      entry.organization = organization;
-    }
-  } catch (error) {}
-
-  try {
-    const title = person.jobTitle();
-    if (title) {
-      entry.jobTitle = title;
-    }
-  } catch (error) {}
-
-  try {
-    const birthday = person.birthDate();
-    if (birthday) {
-      entry.birthday = birthday.toISOString().split("T")[0];
-    }
-  } catch (error) {}
-
-  try {
-    const note = person.note();
-    if (note) {
-      entry.note = note;
-    }
-  } catch (error) {}
-
-  return entry;
-}
-
-function findMatches(app, selectorMode, selectorValue) {
-  if (selectorMode === "id") {
-    return app.people().filter(person => person.id() === selectorValue);
-  }
-
-  return app.people.whose({name: selectorValue})();
-}
-
-function run(argv) {
-  const [selectorMode, selectorValue] = argv;
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  const matches = findMatches(app, selectorMode, selectorValue);
-
-  if (matches.length === 0) {
-    return JSON.stringify({success: false, error: "Contact not found: " + selectorValue});
-  }
-
-  return JSON.stringify({
-    success: true,
-    count: matches.length,
-    data: matches.map(personEntry)
-  }, null, 2);
-}
-EOF
+  run_contacts_applescript get "$selector_mode" "$selector"
 }
 
 cmd_list() {
@@ -477,108 +179,8 @@ cmd_list() {
     esac
   done
 
-  run_jxa osascript -l JavaScript - "$group" "$limit" <<'EOF'
-function normalizeLabel(label) {
-  const raw = String(label || "");
-  const known = {
-    "_$!<Mobile>!$_": "mobile",
-    "_$!<Home>!$_": "home",
-    "_$!<Work>!$_": "work",
-    "_$!<Main>!$_": "main",
-    "_$!<Other>!$_": "other",
-    "_$!<HomePage>!$_": "homepage",
-    "_$!<School>!$_": "school",
-    "_$!<iPhone>!$_": "iphone",
-    "Phone": "phone"
-  };
-
-  if (Object.prototype.hasOwnProperty.call(known, raw)) {
-    return known[raw];
-  }
-
-  const tokenMatch = raw.match(/^_\$!<(.*)>!\$_$/);
-  if (tokenMatch) {
-    return tokenMatch[1].toLowerCase().replace(/\s+/g, "-");
-  }
-
-  return raw.toLowerCase().replace(/\s+/g, "-");
-}
-
-function personEntry(person) {
-  const entry = {
-    id: person.id(),
-    name: person.name()
-  };
-
-  try {
-    const phones = person.phones();
-    if (phones.length > 0) {
-      entry.phones = phones.map(phone => ({
-        label: normalizeLabel(phone.label()),
-        value: phone.value()
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const emails = person.emails();
-    if (emails.length > 0) {
-      entry.emails = emails.map(email => ({
-        label: normalizeLabel(email.label()),
-        value: email.value()
-      }));
-    }
-  } catch (error) {}
-
-  try {
-    const organization = person.organization();
-    if (organization) {
-      entry.organization = organization;
-    }
-  } catch (error) {}
-
-  return entry;
-}
-
-function run(argv) {
-  const [groupName, limitArg] = argv;
-  const limit = Number(limitArg);
-
-  if (!Number.isInteger(limit) || limit < 1) {
-    return JSON.stringify({success: false, error: "Invalid --limit: " + limitArg});
-  }
-
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  let people;
-  if (groupName) {
-    const groups = app.groups.whose({name: groupName})();
-    if (groups.length === 0) {
-      return JSON.stringify({success: false, error: "Group not found: " + groupName});
-    }
-    people = groups[0].people();
-  } else {
-    people = app.people();
-  }
-
-  const results = [];
-  const total = people.length;
-
-  for (let index = 0; index < Math.min(limit, total); index += 1) {
-    results.push(personEntry(people[index]));
-  }
-
-  return JSON.stringify({
-    success: true,
-    total: total,
-    count: results.length,
-    limit: limit,
-    data: results
-  }, null, 2);
-}
-EOF
+  validate_positive_int "--limit" "$limit"
+  run_contacts_applescript list "$group" "$limit"
 }
 
 cmd_add() {
@@ -636,48 +238,7 @@ cmd_add() {
 
   [ -z "$first" ] && [ -z "$last" ] && json_error "Usage: contacts.sh add --first <name> --last <name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>]"
 
-  run_jxa osascript -l JavaScript - "$first" "$last" "$phone" "$email" "$org" "$title" <<'EOF'
-function run(argv) {
-  const [first, last, phone, email, org, title] = argv;
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  const props = {};
-  if (first) {
-    props.firstName = first;
-  }
-  if (last) {
-    props.lastName = last;
-  }
-  if (org) {
-    props.organization = org;
-  }
-  if (title) {
-    props.jobTitle = title;
-  }
-
-  const person = app.Person(props);
-  app.people.push(person);
-
-  if (phone) {
-    person.phones.push(app.Phone({label: "mobile", value: phone}));
-  }
-
-  if (email) {
-    person.emails.push(app.Email({label: "home", value: email}));
-  }
-
-  app.save();
-
-  return JSON.stringify({
-    success: true,
-    message: "Contact created: " + person.name(),
-    id: person.id(),
-    name: person.name()
-  }, null, 2);
-}
-EOF
+  run_contacts_applescript add "$first" "$last" "$phone" "$email" "$org" "$title"
 }
 
 cmd_edit() {
@@ -736,60 +297,7 @@ cmd_edit() {
   [ -z "$selector" ] && json_error "Usage: contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>]"
   [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && json_error "Nothing to update. Provide at least one of --phone, --email, --org, --title"
 
-  run_jxa osascript -l JavaScript - "$selector_mode" "$selector" "$phone" "$email" "$org" "$title" <<'EOF'
-function findMatch(app, selectorMode, selectorValue) {
-  if (selectorMode === "id") {
-    const matches = app.people().filter(person => person.id() === selectorValue);
-    return matches.length > 0 ? matches[0] : null;
-  }
-
-  const matches = app.people.whose({name: selectorValue})();
-  return matches.length > 0 ? matches[0] : null;
-}
-
-function run(argv) {
-  const [selectorMode, selectorValue, phone, email, org, title] = argv;
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  const person = findMatch(app, selectorMode, selectorValue);
-  if (!person) {
-    return JSON.stringify({success: false, error: "Contact not found: " + selectorValue});
-  }
-
-  const changes = [];
-
-  if (org) {
-    person.organization = org;
-    changes.push("organization");
-  }
-
-  if (title) {
-    person.jobTitle = title;
-    changes.push("jobTitle");
-  }
-
-  if (phone) {
-    person.phones.push(app.Phone({label: "mobile", value: phone}));
-    changes.push("phone");
-  }
-
-  if (email) {
-    person.emails.push(app.Email({label: "home", value: email}));
-    changes.push("email");
-  }
-
-  app.save();
-
-  return JSON.stringify({
-    success: true,
-    message: "Updated: " + person.name(),
-    id: person.id(),
-    changes: changes
-  }, null, 2);
-}
-EOF
+  run_contacts_applescript edit "$selector_mode" "$selector" "$phone" "$email" "$org" "$title"
 }
 
 cmd_delete() {
@@ -823,89 +331,15 @@ cmd_delete() {
 
   [ -z "$selector" ] && json_error "Usage: contacts.sh delete [--id <contact-id>] <full-name>"
 
-  run_jxa osascript -l JavaScript - "$selector_mode" "$selector" <<'EOF'
-function findMatch(app, selectorMode, selectorValue) {
-  if (selectorMode === "id") {
-    const matches = app.people().filter(person => person.id() === selectorValue);
-    return matches.length > 0 ? matches[0] : null;
-  }
-
-  const matches = app.people.whose({name: selectorValue})();
-  return matches.length > 0 ? matches[0] : null;
-}
-
-function run(argv) {
-  const [selectorMode, selectorValue] = argv;
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  const person = findMatch(app, selectorMode, selectorValue);
-  if (!person) {
-    return JSON.stringify({success: false, error: "Contact not found: " + selectorValue});
-  }
-
-  const result = {
-    success: true,
-    message: "Deleted: " + person.name(),
-    id: person.id(),
-    name: person.name()
-  };
-
-  app.delete(person);
-  app.save();
-
-  return JSON.stringify(result, null, 2);
-}
-EOF
+  run_contacts_applescript delete "$selector_mode" "$selector"
 }
 
 cmd_groups() {
-  run_jxa osascript -l JavaScript <<'EOF'
-function run() {
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  const groups = app.groups();
-  const results = groups.map(group => ({
-    name: group.name(),
-    count: group.people().length
-  }));
-
-  return JSON.stringify({success: true, count: results.length, data: results}, null, 2);
-}
-EOF
+  run_contacts_applescript groups
 }
 
 cmd_doctor() {
-  run_jxa osascript -l JavaScript <<'EOF'
-function run() {
-  const app = Application("Contacts");
-  app.activate();
-  delay(0.5);
-
-  try {
-    const peopleCount = app.people().length;
-    const groupCount = app.groups().length;
-
-    return JSON.stringify({
-      success: true,
-      data: {
-        app: "Contacts",
-        automationAccess: true,
-        peopleCount: peopleCount,
-        groupCount: groupCount
-      }
-    }, null, 2);
-  } catch (error) {
-    return JSON.stringify({
-      success: false,
-      error: "Contacts automation check failed: " + error.message
-    });
-  }
-}
-EOF
+  run_contacts_applescript doctor
 }
 
 # --- Main dispatch ---

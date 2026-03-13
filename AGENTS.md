@@ -15,7 +15,8 @@ Primary goals:
 - `README.md`: public project overview and installation notes.
 - `.github/workflows/ci-pr.yml`: PR validation, auto-merge, version bump, tag, and release flow.
 - `.github/workflows/ci-main.yml`: main-branch validation, patch tag, and release flow.
-- `scripts/contacts.sh`: main CLI script — all Contacts operations.
+- `scripts/contacts.sh`: main CLI dispatcher that preserves the stable command-line contract.
+- `scripts/contacts/*.applescript`: AppleScript entrypoints for each Contacts operation.
 
 ## Working Rules
 
@@ -29,7 +30,7 @@ Primary goals:
 - Read-only operations: `search`, `get`, `list`, `groups`.
 - Write operations: `add`, `edit`, `delete`.
 - All commands return `{"success": true, ...}` on success and `{"success": false, "error": "..."}` on failure.
-- AppleScript is embedded inline in bash functions via heredoc to `osascript`.
+- AppleScript entrypoints live in `scripts/contacts/*.applescript` and are called via `osascript` from `scripts/contacts.sh`.
 
 ## Validation
 

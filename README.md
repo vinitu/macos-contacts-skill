@@ -25,7 +25,7 @@ This skill gives AI agents (Claude Code, Cursor, Copilot, etc.) the ability to:
 
 Uses AppleScript via `osascript` to interact with macOS Contacts.app. No external dependencies — just bash and osascript.
 
-All commands are exposed through a single CLI script: `scripts/contacts.sh`.
+The CLI wrapper `scripts/contacts.sh` preserves the stable command-line interface and dispatches to command entrypoints in `scripts/contacts/*.applescript`.
 
 ## Requirements
 
@@ -166,7 +166,8 @@ bash scripts/contacts.sh doctor
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/contacts.sh` | Main CLI — all Contacts operations |
+| `scripts/contacts.sh` | Main CLI dispatcher — stable command interface |
+| `scripts/contacts/*.applescript` | Command entrypoints used by the CLI wrapper |
 | `scripts/smoke-test.sh` | Read-only smoke test for JSON output and exit codes |
 
 ## Output
