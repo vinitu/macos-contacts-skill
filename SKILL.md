@@ -1,9 +1,9 @@
 ---
-name: apple-contacts
+name: macos-contacts
 description: Manage macOS Contacts.app — search, view, create, edit, and delete contacts. Use when the user asks to find a contact, look up a phone number or email, add a new contact, update contact details, or list contact groups.
 ---
 
-# Apple Contacts Skill
+# macOS Contacts Skill
 
 ## Overview
 - Manages macOS Contacts.app through AppleScript.

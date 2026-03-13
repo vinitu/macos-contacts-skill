@@ -1,11 +1,11 @@
-# apple-contacts-skill
+# macos-contacts-skill
 
 AI agent skill for managing macOS Contacts.app — search, view, create, edit, and delete contacts via AppleScript.
 
 ## Installation
 
 ```bash
-npx skills add vinitu/apple-contacts-skill
+npx skills add vinitu/macos-contacts-skill
 ```
 
 ## What it does
