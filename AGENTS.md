@@ -4,6 +4,9 @@
 
 This repository provides an AI skill for managing macOS Contacts.app through AppleScript.
 
+Installed global skill directory: `~/.agents/skills/macos-contacts`.
+`skills check` and `skills update` may refer to this skill by upstream package name `apple-contacts` from `vinitu/apple-contacts-skill`.
+
 Primary goals:
 - keep the CLI dependency-free (bash + osascript only);
 - preserve predictable JSON I/O for agents;

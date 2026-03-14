@@ -11,48 +11,50 @@ description: Manage macOS Contacts.app — search, view, create, edit, and delet
 - Main CLI wrapper: `scripts/contacts.sh`.
 - Command entrypoints: `scripts/contacts/*.applescript`.
 - All commands return JSON for agent consumption.
+- Installed global skill directory: `~/.agents/skills/macos-contacts`.
+- `skills check` and `skills update` may refer to this skill by upstream package name `apple-contacts` from `vinitu/apple-contacts-skill`.
 
 ## Quick Start
 
 ```bash
 # Search for a contact by name
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh search --field name --limit 10 "John"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh search --field name --limit 10 "John"
 
 # Search for a contact by email
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh search --field email --exact "john@example.com"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh search --field email --exact "john@example.com"
 
 # Get full details of a contact
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh get "John Doe"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh get "John Doe"
 
 # Get full details by stable contact id
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh get --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh get --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 
 # List contacts
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh list --limit 20
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh list --limit 20
 
 # List contacts in a group
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh list --group "Work"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh list --group "Work"
 
 # Add a new contact
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh add --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh add --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme"
 
 # Edit a contact by name
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh edit "John Doe" --phone "+48111222333"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh edit "John Doe" --phone "+48111222333"
 
 # Edit a contact by stable contact id
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh edit --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh edit --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
 
 # Delete a contact by name
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh delete "John Doe"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh delete "John Doe"
 
 # Delete a contact by stable contact id
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh delete --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh delete --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 
 # List all contact groups
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh groups
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh groups
 
 # Check Contacts automation health
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh doctor
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh doctor
 ```
 
 ## What This Skill Can Do
@@ -61,84 +63,84 @@ bash ~/.agents/skills/apple-contacts/scripts/contacts.sh doctor
 
 ```bash
 # Search across name and organization
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh search "John"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh search "John"
 
 # Search by exact email
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh search --field email --exact "john@example.com"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh search --field email --exact "john@example.com"
 
 # Search by phone
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh search --field phone "+48123456789"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh search --field phone "+48123456789"
 
 # Limit results
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh search --field name --limit 5 "Doe"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh search --field name --limit 5 "Doe"
 ```
 
 ### `get`
 
 ```bash
 # Get by exact full name
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh get "John Doe"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh get "John Doe"
 
 # Get by stable contact id
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh get --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh get --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 ```
 
 ### `list`
 
 ```bash
 # List first 20 contacts
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh list --limit 20
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh list --limit 20
 
 # List contacts in a group
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh list --group "Work"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh list --group "Work"
 
 # List contacts in a group with limit
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh list --group "Work" --limit 10
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh list --group "Work" --limit 10
 ```
 
 ### `add`
 
 ```bash
 # Add a minimal contact
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh add --first "John" --last "Doe"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh add --first "John" --last "Doe"
 
 # Add a full contact
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh add --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme" --title "CTO"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh add --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme" --title "CTO"
 ```
 
 ### `edit`
 
 ```bash
 # Add a phone to a contact found by name
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh edit "John Doe" --phone "+48111222333"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh edit "John Doe" --phone "+48111222333"
 
 # Add an email to a contact found by id
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh edit --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh edit --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
 
 # Update organization and title
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh edit "John Doe" --org "NewCorp" --title "CTO"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh edit "John Doe" --org "NewCorp" --title "CTO"
 ```
 
 ### `delete`
 
 ```bash
 # Delete by name
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh delete "John Doe"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh delete "John Doe"
 
 # Delete by stable contact id
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh delete --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh delete --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 ```
 
 ### `groups`
 
 ```bash
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh groups
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh groups
 ```
 
 ### `doctor`
 
 ```bash
-bash ~/.agents/skills/apple-contacts/scripts/contacts.sh doctor
+bash ~/.agents/skills/macos-contacts/scripts/contacts.sh doctor
 ```
 
 ## Operational Notes
