@@ -1,7 +1,7 @@
 using terms from application "Contacts"
 
 on run argv
-	if (count of argv) is not 7 then return my jsonError("Internal error: invalid edit arguments")
+	if (count of argv) is not 8 then return my jsonError("Internal error: invalid edit arguments")
 
 	set selectorMode to item 1 of argv
 	set selectorValue to item 2 of argv
@@ -10,6 +10,7 @@ on run argv
 	set organizationValue to item 5 of argv
 	set titleValue to item 6 of argv
 	set birthdayValue to item 7 of argv
+	set clearBirthdayFlag to item 8 of argv
 
 	set updatedId to ""
 	set updatedName to ""
@@ -41,6 +42,11 @@ on run argv
 
 			if birthdayValue is not "" then
 				set birth date of targetPerson to my parseBirthdayValue(birthdayValue)
+				set end of changeItems to my jsonString("birthday")
+			end if
+
+			if clearBirthdayFlag is "true" then
+				set birth date of targetPerson to missing value
 				set end of changeItems to my jsonString("birthday")
 			end if
 

@@ -40,6 +40,15 @@ validate_birthday() {
   [[ "$value" =~ ^([0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2})$ ]] || json_error "Invalid --birthday: $value. Use MM-DD or YYYY-MM-DD"
 }
 
+assert_no_conflict() {
+  local set_flag="$1"
+  local clear_flag="$2"
+  local label="$3"
+  if [ "$set_flag" = "true" ] && [ "$clear_flag" = "true" ]; then
+    json_error "Conflicting options for $label"
+  fi
+}
+
 run_applescript() {
   local output
 
@@ -254,6 +263,7 @@ cmd_edit() {
   local org=""
   local title=""
   local birthday=""
+  local clear_birthday="false"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -288,6 +298,10 @@ cmd_edit() {
         birthday="$2"
         shift 2
         ;;
+      --clear-birthday)
+        clear_birthday="true"
+        shift
+        ;;
       --)
         shift
         break
@@ -305,11 +319,12 @@ cmd_edit() {
     esac
   done
 
-  [ -z "$selector" ] && json_error "Usage: contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>]"
-  [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && [ -z "$birthday" ] && json_error "Nothing to update. Provide at least one of --phone, --email, --org, --title, --birthday"
+  [ -z "$selector" ] && json_error "Usage: contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>] [--clear-birthday]"
+  assert_no_conflict "${birthday:+true}" "$clear_birthday" "--birthday"
+  [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && [ -z "$birthday" ] && [ "$clear_birthday" != "true" ] && json_error "Nothing to update. Provide at least one of --phone, --email, --org, --title, --birthday, --clear-birthday"
   [ -n "$birthday" ] && validate_birthday "$birthday"
 
-  run_contacts_applescript edit "$selector_mode" "$selector" "$phone" "$email" "$org" "$title" "$birthday"
+  run_contacts_applescript edit "$selector_mode" "$selector" "$phone" "$email" "$org" "$title" "$birthday" "$clear_birthday"
 }
 
 cmd_delete() {

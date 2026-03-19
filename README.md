@@ -85,6 +85,7 @@ scripts/commands/contact/edit.sh "John Doe" --phone "+48111222333"
 scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
 scripts/commands/contact/edit.sh "John Doe" --birthday "04-20"
 scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --birthday "1988-04-20"
+scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --clear-birthday
 scripts/commands/contact/delete.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 scripts/commands/group/list.sh
 scripts/commands/system/doctor.sh
@@ -114,6 +115,7 @@ Search and list notes:
 
 - `search.sh` supports `--field name|phone|email|org|all`, `--limit N`, and `--exact`.
 - `add.sh` and `edit.sh` support `--birthday` in `MM-DD` or `YYYY-MM-DD` format.
+- `edit.sh` supports `--clear-birthday` to remove an existing birthday.
 - `list.sh` supports `--group` and `--limit`.
 - label values are normalised to simple values such as `mobile`, `home`, `work`, and `other`.
 - Contacts can return birthday year `1604` when the year is not set.
