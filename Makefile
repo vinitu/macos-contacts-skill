@@ -4,12 +4,12 @@ dictionary-contacts:
 	@sdef /System/Applications/Contacts.app
 
 check:
-	@bash scripts/contacts.sh doctor >/dev/null 2>&1 || { echo "check: Contacts.app or Automation not available"; exit 1; }
+	@bash scripts/commands/system/doctor.sh >/dev/null 2>&1 || { echo "check: Contacts.app or Automation not available"; exit 1; }
 	@echo "Contacts.app is available"
 
 compile:
 	@set -euo pipefail; \
-	find scripts/contacts -name '*.applescript' -print | while IFS= read -r file; do \
+	find scripts/applescripts -name '*.applescript' -print | while IFS= read -r file; do \
 		osacompile -o /tmp/$$(echo "$$file" | tr '/' '_' | sed 's/\.applescript$$/.scpt/') "$$file"; \
 	done
 
@@ -19,4 +19,4 @@ test-dictionary:
 	@bash tests/dictionary_contract.sh
 
 test-smoke:
-	@bash scripts/smoke-test.sh
+	@bash tests/smoke_contacts.sh

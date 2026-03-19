@@ -21,16 +21,21 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint Shell & Docs
+    name: Lint AppleScript & Shell
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check AppleScript syntax
+        run: |
+          set -euo pipefail
+          make compile
+
       - name: Validate repository structure
         run: |
           set -euo pipefail
-          required=(
+          required_files=(
             AGENTS.md
             LICENSE
             README.md
@@ -38,16 +43,26 @@ jobs:
             Makefile
             scripts/contacts.sh
             tests/dictionary_contract.sh
+            tests/smoke_contacts.sh
           )
-          for path in "${required[@]}"; do
+          required_dirs=(
+            scripts/commands/contact
+            scripts/commands/group
+            scripts/commands/system
+            scripts/applescripts/contact
+          )
+          for path in "${required_files[@]}"; do
             [ -f "$path" ] || { echo "::error file=$path::Missing required file"; exit 1; }
+          done
+          for path in "${required_dirs[@]}"; do
+            [ -d "$path" ] || { echo "::error file=$path::Missing required directory"; exit 1; }
           done
 
       - name: Check shell scripts
         run: |
           set -euo pipefail
           if command -v shellcheck >/dev/null 2>&1; then
-            shellcheck scripts/*.sh tests/*.sh
+            find scripts tests -name '*.sh' -exec shellcheck {} +
           else
             echo "shellcheck not available, skipping"
           fi

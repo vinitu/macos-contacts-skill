@@ -1,6 +1,9 @@
 # macOS Contacts Skill
 
-AI agent skill for managing macOS Contacts.app — search, view, create, edit, and delete contacts via AppleScript.
+This repo stores an AI agent skill for Apple Contacts.app on macOS.
+
+The public interface is `scripts/commands`.
+`scripts/applescripts/contact` and `scripts/contacts.sh` are internal implementation details.
 
 ## Installation
 
@@ -17,179 +20,105 @@ skills.sh add vinitu/apple-contacts-skill
 The installed global skill directory is usually `~/.agents/skills/macos-contacts`.
 `skills check` and `skills update` may refer to the upstream package name `apple-contacts`.
 
-## What it does
+## Purpose And Scope
 
-This skill gives AI agents (Claude Code, Cursor, Copilot, etc.) the ability to:
+This skill lets agents:
 
-- **Search** contacts by name, phone, email, or organization with `--field`, `--limit`, and `--exact`
-- **Get** full details of a specific contact by exact name or stable contact `id`
-- **List** all contacts or filter by group
-- **Add** new contacts with phone, email, and organization
-- **Edit** existing contact fields by name or `id`
-- **Delete** contacts by name or `id`
-- **Groups** — list all contact groups
-- **Doctor** — check Contacts automation access and database counts
-
-## How it works
-
-Uses AppleScript via `osascript` to interact with macOS Contacts.app. No external dependencies — just bash and osascript.
-
-The CLI wrapper `scripts/contacts.sh` preserves the stable command-line interface and dispatches to command entrypoints in `scripts/contacts/*.applescript`.
+- search contacts by name, phone, email, or organisation
+- read full contact details by exact name or stable contact `id`
+- list contacts, optionally by group
+- add, edit, and delete contacts with explicit write commands
+- list groups
+- check Contacts automation access with a health command
 
 ## Requirements
 
 - macOS with Contacts.app
-- Bash 3.2+ (ships with macOS)
-- Terminal must have Automation permission for Contacts.app
+- Bash 3.2+ or newer
+- `osascript`
+- Terminal automation permission for Contacts.app
 
-## Quick start
+No extra runtime dependencies are required.
 
-```bash
-# Search contacts by name
-bash scripts/contacts.sh search --field name --limit 10 "Doe"
+## Public Interface
 
-# Search contacts by email
-bash scripts/contacts.sh search --field email --exact "john@example.com"
-
-# Get full contact details
-bash scripts/contacts.sh get "John Doe"
-
-# Get by stable contact id
-bash scripts/contacts.sh get --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
-
-# List contacts
-bash scripts/contacts.sh list --limit 10
-
-# List contacts in a group
-bash scripts/contacts.sh list --group "Work" --limit 10
-
-# Add a contact
-bash scripts/contacts.sh add --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme"
-
-# Edit a contact by name
-bash scripts/contacts.sh edit "John Doe" --phone "+48111222333"
-
-# Edit a contact by stable contact id
-bash scripts/contacts.sh edit --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
-
-# Delete a contact by name
-bash scripts/contacts.sh delete "John Doe"
-
-# Delete a contact by stable contact id
-bash scripts/contacts.sh delete --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
-
-# List groups
-bash scripts/contacts.sh groups
-
-# Check Contacts automation health
-bash scripts/contacts.sh doctor
-```
-
-## Commands
-
-### `search`
+Run commands from the repo root:
 
 ```bash
-# Search across name and organization
-bash scripts/contacts.sh search "John"
-
-# Search by exact email
-bash scripts/contacts.sh search --field email --exact "john@example.com"
-
-# Search by phone
-bash scripts/contacts.sh search --field phone "+48123456789"
-
-# Limit results
-bash scripts/contacts.sh search --field name --limit 5 "Doe"
+scripts/commands/<entity>/<action>.sh [args...]
 ```
 
-### `get`
+Published commands:
+
+- `scripts/commands/contact/search.sh`
+- `scripts/commands/contact/get.sh`
+- `scripts/commands/contact/list.sh`
+- `scripts/commands/contact/add.sh`
+- `scripts/commands/contact/edit.sh`
+- `scripts/commands/contact/delete.sh`
+- `scripts/commands/group/list.sh`
+- `scripts/commands/system/doctor.sh`
+
+Compatibility note:
+
+- `scripts/contacts.sh` still works for older callers, but it is not the public interface anymore.
+- Do not call `scripts/applescripts/contact/*.applescript` directly.
+
+Unsupported options:
+
+- `--json`
+- `--plain`
+- `--format=plain|json`
+
+## How To Use
 
 ```bash
-# Get by exact full name
-bash scripts/contacts.sh get "John Doe"
-
-# Get by stable contact id
-bash scripts/contacts.sh get --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+scripts/commands/contact/search.sh --field name --limit 10 "Doe"
+scripts/commands/contact/search.sh --field email --exact "john@example.com"
+scripts/commands/contact/get.sh "John Doe"
+scripts/commands/contact/get.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+scripts/commands/contact/list.sh --limit 10
+scripts/commands/contact/list.sh --group "Work" --limit 10
+scripts/commands/contact/add.sh --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme"
+scripts/commands/contact/edit.sh "John Doe" --phone "+48111222333"
+scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
+scripts/commands/contact/delete.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+scripts/commands/group/list.sh
+scripts/commands/system/doctor.sh
 ```
 
-### `list`
+## Input And Output Contract
 
-```bash
-# List first 10 contacts
-bash scripts/contacts.sh list --limit 10
+Output rules:
 
-# List contacts in a group
-bash scripts/contacts.sh list --group "Work"
+- Commands return JSON on success.
+- Logical failures return JSON with `{"success": false, "error": "..."}` and exit with status `1`.
+- Success payloads keep the existing envelope `{"success": true, ...}`.
 
-# List contacts in a group with limit
-bash scripts/contacts.sh list --group "Work" --limit 10
-```
+Contact object fields:
 
-### `add`
+- `id`
+- `name`
+- `phones`
+- `emails`
+- `addresses`
+- `organization`
+- `job_title`
+- `birthday`
+- `note`
 
-```bash
-# Add a minimal contact
-bash scripts/contacts.sh add --first "John" --last "Doe"
+Search and list notes:
 
-# Add a full contact
-bash scripts/contacts.sh add --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme" --title "CTO"
-```
+- `search.sh` supports `--field name|phone|email|org|all`, `--limit N`, and `--exact`.
+- `list.sh` supports `--group` and `--limit`.
+- label values are normalised to simple values such as `mobile`, `home`, `work`, and `other`.
 
-### `edit`
-
-```bash
-# Add a phone to a contact found by name
-bash scripts/contacts.sh edit "John Doe" --phone "+48111222333"
-
-# Add an email to a contact found by id
-bash scripts/contacts.sh edit --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
-
-# Update organization and title
-bash scripts/contacts.sh edit "John Doe" --org "NewCorp" --title "CTO"
-```
-
-### `delete`
-
-```bash
-# Delete by name
-bash scripts/contacts.sh delete "John Doe"
-
-# Delete by stable contact id
-bash scripts/contacts.sh delete --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
-```
-
-### `groups`
-
-```bash
-bash scripts/contacts.sh groups
-```
-
-### `doctor`
-
-```bash
-bash scripts/contacts.sh doctor
-```
-
-## Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `scripts/contacts.sh` | Main CLI dispatcher — stable command interface |
-| `scripts/contacts/*.applescript` | Command entrypoints used by the CLI wrapper |
-| `tests/smoke_contacts.sh` | Read-only smoke test for JSON output and exit codes |
-
-## Output
-
-All commands return JSON for easy integration with AI agents and automation tools.
-Logical failures return `{"success": false, ...}` and exit with status `1`.
-Contact payloads include a stable `id`.
-Phone and email labels are normalized to values like `mobile`, `home`, `work`, and `other`.
-Use `--field phone` or `--field email` for precise non-name lookups.
+Example:
 
 ```json
 {
   "success": true,
+  "count": 1,
   "data": [
     {
       "id": "23B708DC-4556-41E3-8738-89867826B760:ABPerson",
@@ -200,6 +129,33 @@ Use `--field phone` or `--field email` for precise non-name lookups.
   ]
 }
 ```
+
+## Repo Layout
+
+- `AGENTS.md` - repo rules for agents.
+- `README.md` - human-facing overview.
+- `SKILL.md` - agent-facing workflow and command contract.
+- `Makefile` - validation entrypoints.
+- `scripts/commands/` - public shell command surface.
+- `scripts/applescripts/contact/` - internal AppleScript backends.
+- `tests/` - dictionary and smoke checks.
+
+## Validation And Tests
+
+```bash
+make check
+make compile
+make test
+```
+
+`make test` runs the dictionary contract and a live smoke test against Contacts.app.
+
+## Known Limits
+
+- Contacts automation can fail until macOS grants Terminal access to Contacts.app.
+- AppleScript can be slow on large contact databases.
+- The public interface does not expose raw AppleScript internals.
+- `scripts/commands/contact/add.sh` keeps the old verb `add` instead of `create` to preserve compatibility with existing callers.
 
 ## License
 

@@ -1,18 +1,11 @@
-#!/bin/bash
-# Manage macOS Contacts.app via AppleScript.
-# Usage:
-#   contacts.sh search [--field name|phone|email|org|all] [--limit N] [--exact] <query>
-#   contacts.sh get [--id <contact-id>] <full-name>
-#   contacts.sh list [--group <name>] [--limit N]
-#   contacts.sh add --first <name> --last <name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>]
-#   contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>]
-#   contacts.sh delete [--id <contact-id>] <full-name>
-#   contacts.sh groups
-#   contacts.sh doctor
+#!/usr/bin/env bash
+# Compatibility wrapper for the older single-entrypoint Contacts CLI.
+# Public commands live under scripts/commands/.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPLEScript_DIR="$SCRIPT_DIR/applescripts/contact"
 
 json_escape() {
   local s="${1-}"
@@ -62,7 +55,7 @@ run_contacts_applescript() {
   local operation="$1"
   shift
 
-  local script_path="$SCRIPT_DIR/contacts/${operation}.applescript"
+  local script_path="$APPLEScript_DIR/${operation}.applescript"
   [ -f "$script_path" ] || json_error "Missing AppleScript entrypoint: $script_path"
 
   run_applescript osascript "$script_path" "$@"
