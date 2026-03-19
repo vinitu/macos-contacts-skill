@@ -59,9 +59,12 @@ bash ~/.agents/skills/macos-contacts/scripts/commands/contact/get.sh "John Doe"
 bash ~/.agents/skills/macos-contacts/scripts/commands/contact/get.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 bash ~/.agents/skills/macos-contacts/scripts/commands/contact/list.sh --limit 20
 bash ~/.agents/skills/macos-contacts/scripts/commands/contact/list.sh --group "Work"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/add.sh --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme"
+bash ~/.agents/skills/macos-contacts/scripts/commands/contact/add.sh --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme" --birthday "04-20"
+bash ~/.agents/skills/macos-contacts/scripts/commands/contact/add.sh --first "John" --last "Doe" --birthday "1988-04-20"
 bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh "John Doe" --phone "+48111222333"
 bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
+bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh "John Doe" --birthday "04-20"
+bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --birthday "1988-04-20"
 bash ~/.agents/skills/macos-contacts/scripts/commands/contact/delete.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 ```
 
@@ -104,8 +107,10 @@ Contact object:
 Search and list rules:
 
 - `search.sh` supports `--field name|phone|email|org|all`, `--limit N`, and `--exact`
+- `add.sh` and `edit.sh` support `--birthday` in `MM-DD` or `YYYY-MM-DD` format
 - use `--field phone` or `--field email` for exact lookups by number or email
 - phone, email, and address labels are normalised to values such as `mobile`, `home`, `work`, and `other`
+- Contacts can return birthday year `1604` when the year is not set
 
 ## Safety Boundaries
 

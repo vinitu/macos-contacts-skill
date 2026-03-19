@@ -1,4 +1,4 @@
-.PHONY: dictionary-contacts check compile test test-dictionary test-smoke
+.PHONY: dictionary-contacts check compile test test-dictionary test-smoke test-cli
 
 dictionary-contacts:
 	@sdef /System/Applications/Contacts.app
@@ -13,10 +13,13 @@ compile:
 		osacompile -o /tmp/$$(echo "$$file" | tr '/' '_' | sed 's/\.applescript$$/.scpt/') "$$file"; \
 	done
 
-test: test-dictionary test-smoke
+test: test-dictionary test-cli test-smoke
 
 test-dictionary:
 	@bash tests/dictionary_contract.sh
+
+test-cli:
+	@bash tests/birthday_contract.sh
 
 test-smoke:
 	@bash tests/smoke_contacts.sh

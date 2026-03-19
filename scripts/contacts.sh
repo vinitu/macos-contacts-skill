@@ -35,6 +35,11 @@ validate_positive_int() {
   [ "$value" -ge 1 ] || json_error "Invalid $flag: $value"
 }
 
+validate_birthday() {
+  local value="$1"
+  [[ "$value" =~ ^([0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2})$ ]] || json_error "Invalid --birthday: $value. Use MM-DD or YYYY-MM-DD"
+}
+
 run_applescript() {
   local output
 
@@ -183,6 +188,7 @@ cmd_add() {
   local email=""
   local org=""
   local title=""
+  local birthday=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -216,6 +222,11 @@ cmd_add() {
         title="$2"
         shift 2
         ;;
+      --birthday)
+        require_option_value "$1" "${2-}"
+        birthday="$2"
+        shift 2
+        ;;
       --)
         shift
         break
@@ -229,9 +240,10 @@ cmd_add() {
     esac
   done
 
-  [ -z "$first" ] && [ -z "$last" ] && json_error "Usage: contacts.sh add --first <name> --last <name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>]"
+  [ -z "$first" ] && [ -z "$last" ] && json_error "Usage: contacts.sh add --first <name> --last <name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>]"
+  [ -n "$birthday" ] && validate_birthday "$birthday"
 
-  run_contacts_applescript add "$first" "$last" "$phone" "$email" "$org" "$title"
+  run_contacts_applescript add "$first" "$last" "$phone" "$email" "$org" "$title" "$birthday"
 }
 
 cmd_edit() {
@@ -241,6 +253,7 @@ cmd_edit() {
   local email=""
   local org=""
   local title=""
+  local birthday=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -270,6 +283,11 @@ cmd_edit() {
         title="$2"
         shift 2
         ;;
+      --birthday)
+        require_option_value "$1" "${2-}"
+        birthday="$2"
+        shift 2
+        ;;
       --)
         shift
         break
@@ -287,10 +305,11 @@ cmd_edit() {
     esac
   done
 
-  [ -z "$selector" ] && json_error "Usage: contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>]"
-  [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && json_error "Nothing to update. Provide at least one of --phone, --email, --org, --title"
+  [ -z "$selector" ] && json_error "Usage: contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>]"
+  [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && [ -z "$birthday" ] && json_error "Nothing to update. Provide at least one of --phone, --email, --org, --title, --birthday"
+  [ -n "$birthday" ] && validate_birthday "$birthday"
 
-  run_contacts_applescript edit "$selector_mode" "$selector" "$phone" "$email" "$org" "$title"
+  run_contacts_applescript edit "$selector_mode" "$selector" "$phone" "$email" "$org" "$title" "$birthday"
 }
 
 cmd_delete() {
