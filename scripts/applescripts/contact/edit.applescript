@@ -1,7 +1,7 @@
 using terms from application "Contacts"
 
 on run argv
-	if (count of argv) is not 6 then return my jsonError("Internal error: invalid edit arguments")
+	if (count of argv) is not 8 then return my jsonError("Internal error: invalid edit arguments")
 
 	set selectorMode to item 1 of argv
 	set selectorValue to item 2 of argv
@@ -9,6 +9,8 @@ on run argv
 	set emailValue to item 4 of argv
 	set organizationValue to item 5 of argv
 	set titleValue to item 6 of argv
+	set birthdayValue to item 7 of argv
+	set clearBirthdayFlag to item 8 of argv
 
 	set updatedId to ""
 	set updatedName to ""
@@ -38,6 +40,16 @@ on run argv
 				set end of changeItems to my jsonString("jobTitle")
 			end if
 
+			if birthdayValue is not "" then
+				set birth date of targetPerson to my parseBirthdayValue(birthdayValue)
+				set end of changeItems to my jsonString("birthday")
+			end if
+
+			if clearBirthdayFlag is "true" then
+				set birth date of targetPerson to missing value
+				set end of changeItems to my jsonString("birthday")
+			end if
+
 			if phoneValue is not "" then
 				tell targetPerson to make new phone at end of phones with properties {label:"mobile", value:phoneValue}
 				set end of changeItems to my jsonString("phone")
@@ -65,6 +77,72 @@ on run argv
 
 	return "{\"success\":true,\"message\":" & my jsonString("Updated: " & updatedName) & ",\"id\":" & my jsonString(updatedId) & ",\"changes\":[" & (my joinTextList(changeItems, ",")) & "]}"
 end run
+
+on parseBirthdayValue(dateText)
+	if (length of dateText) is 5 then
+		set normalizedDate to "1604-" & dateText
+	else if (length of dateText) is 10 then
+		set normalizedDate to dateText
+	else
+		error "Invalid --birthday: " & dateText & ". Use MM-DD or YYYY-MM-DD"
+	end if
+
+	if text 5 of normalizedDate is not "-" or text 8 of normalizedDate is not "-" then error "Invalid --birthday: " & dateText & ". Use MM-DD or YYYY-MM-DD"
+
+	try
+		set yearValue to (text 1 thru 4 of normalizedDate) as integer
+		set monthValue to (text 6 thru 7 of normalizedDate) as integer
+		set dayValue to (text 9 thru 10 of normalizedDate) as integer
+	on error
+		error "Invalid --birthday: " & dateText & ". Use MM-DD or YYYY-MM-DD"
+	end try
+
+	if monthValue is less than 1 or monthValue is greater than 12 then error "Invalid --birthday month: " & dateText
+	if dayValue is less than 1 or dayValue is greater than 31 then error "Invalid --birthday day: " & dateText
+
+	set parsedDate to current date
+	set year of parsedDate to yearValue
+	set month of parsedDate to my monthFromNumber(monthValue)
+	set day of parsedDate to dayValue
+	set time of parsedDate to (12 * hours)
+	if my formatDateISO(parsedDate) is not normalizedDate then error "Invalid --birthday date: " & dateText
+	return parsedDate
+end parseBirthdayValue
+
+on monthFromNumber(monthValue)
+	if monthValue is 1 then return January
+	if monthValue is 2 then return February
+	if monthValue is 3 then return March
+	if monthValue is 4 then return April
+	if monthValue is 5 then return May
+	if monthValue is 6 then return June
+	if monthValue is 7 then return July
+	if monthValue is 8 then return August
+	if monthValue is 9 then return September
+	if monthValue is 10 then return October
+	if monthValue is 11 then return November
+	if monthValue is 12 then return December
+	error "Invalid --birthday month number: " & (monthValue as text)
+end monthFromNumber
+
+on padNumber(numberValue, minWidth)
+	set valueText to (numberValue as integer) as text
+	repeat while (length of valueText) is less than minWidth
+		set valueText to "0" & valueText
+	end repeat
+	return valueText
+end padNumber
+
+on formatDateISO(dateValue)
+	try
+		set yearValue to year of dateValue as integer
+		set monthValue to month of dateValue as integer
+		set dayValue to day of dateValue as integer
+		return (my padNumber(yearValue, 4)) & "-" & (my padNumber(monthValue, 2)) & "-" & (my padNumber(dayValue, 2))
+	on error
+		return ""
+	end try
+end formatDateISO
 
 on replaceText(findText, replacementText, sourceText)
 	set oldDelimiters to AppleScript's text item delimiters
