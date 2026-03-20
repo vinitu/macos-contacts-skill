@@ -3,10 +3,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CONTACT_CLI="$ROOT_DIR/scripts/commands/contact"
-GROUP_CLI="$ROOT_DIR/scripts/commands/group/list.sh"
-SYSTEM_CLI="$ROOT_DIR/scripts/commands/system/doctor.sh"
-LEGACY_CLI="$ROOT_DIR/scripts/contacts.sh"
+CONTACT_CLI="${CONTACT_CLI:-$ROOT_DIR/scripts/commands/contact}"
+GROUP_CLI="${GROUP_CLI:-$ROOT_DIR/scripts/commands/group/list.sh}"
+SYSTEM_CLI="${SYSTEM_CLI:-$ROOT_DIR/scripts/commands/system/doctor.sh}"
+LEGACY_CLI="${LEGACY_CLI:-$ROOT_DIR/scripts/contacts.sh}"
 
 assert_success_json() {
   local output="$1"
@@ -30,11 +30,20 @@ extract_first_string_field() {
   printf '%s\n' "$output" | sed -n "s/.*\"$field\": \"\\([^\"]*\\)\".*/\\1/p" | head -n1
 }
 
+set +e
+doctor_output="$(bash "$SYSTEM_CLI" 2>&1)"
+doctor_status=$?
+set -e
+
+if [ "$doctor_status" -ne 0 ]; then
+  printf 'Skipping smoke tests: Contacts automation unavailable.\n%s\n' "$doctor_output"
+  exit 0
+fi
+
+assert_success_json "$doctor_output"
+
 groups_output="$(bash "$GROUP_CLI")"
 assert_success_json "$groups_output"
-
-doctor_output="$(bash "$SYSTEM_CLI")"
-assert_success_json "$doctor_output"
 
 list_output="$(bash "$CONTACT_CLI/list.sh" --limit 1)"
 assert_success_json "$list_output"

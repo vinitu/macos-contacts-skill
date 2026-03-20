@@ -156,6 +156,7 @@ make test
 ```
 
 `make test` runs the dictionary contract and a live smoke test against Contacts.app.
+If Contacts automation is unavailable, the smoke test skips instead of failing.
 
 ## Known Limits
 
