@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -27,8 +27,7 @@ output="$(
   CONTACT_CLI="$tmpdir" \
   GROUP_CLI="$tmpdir/unexpected.sh" \
   SYSTEM_CLI="$tmpdir/doctor.sh" \
-  LEGACY_CLI="$tmpdir/unexpected.sh" \
-  bash "$ROOT_DIR/tests/smoke_contacts.sh"
+  bash "$ROOT_DIR/scripts/tests/smoke_contacts.sh"
 )"
 
 printf '%s\n' "$output" | grep -q 'Skipping smoke tests: Contacts automation unavailable.' || {

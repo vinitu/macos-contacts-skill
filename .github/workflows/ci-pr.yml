@@ -27,48 +27,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate repository structure
+        run: |
+          set -euo pipefail
+          for path in AGENTS.md LICENSE README.md SKILL.md Makefile scripts/commands/_lib/common.sh scripts/tests/dictionary_contract.sh scripts/tests/smoke_contacts.sh; do
+            [ -f "$path" ] || { echo "::error::Missing $path"; exit 1; }
+          done
+
       - name: Check AppleScript syntax
         run: |
           set -euo pipefail
           make compile
 
-      - name: Validate repository structure
-        run: |
-          set -euo pipefail
-          required_files=(
-            AGENTS.md
-            LICENSE
-            README.md
-            SKILL.md
-            Makefile
-            scripts/contacts.sh
-            tests/dictionary_contract.sh
-            tests/smoke_contacts.sh
-          )
-          required_dirs=(
-            scripts/commands/contact
-            scripts/commands/group
-            scripts/commands/system
-            scripts/applescripts/contact
-          )
-          for path in "${required_files[@]}"; do
-            [ -f "$path" ] || { echo "::error file=$path::Missing required file"; exit 1; }
-          done
-          for path in "${required_dirs[@]}"; do
-            [ -d "$path" ] || { echo "::error file=$path::Missing required directory"; exit 1; }
-          done
-
       - name: Check shell scripts
         run: |
           set -euo pipefail
           if command -v shellcheck >/dev/null 2>&1; then
-            find scripts tests -name '*.sh' -exec shellcheck {} +
+            find scripts scripts/tests -name '*.sh' -exec shellcheck {} +
           else
             echo "shellcheck not available, skipping"
           fi
-
-      - name: Run dictionary contract
-        run: bash tests/dictionary_contract.sh
 
       - name: Validate SKILL.md frontmatter
         run: |
@@ -87,8 +65,15 @@ jobs:
           fi
           echo "SKILL.md frontmatter is valid"
 
+      - name: Run dictionary contract
+        run: |
+          set -euo pipefail
+          bash scripts/tests/dictionary_contract.sh
+
       - name: Run tests
-        run: make test
+        run: |
+          set -euo pipefail
+          make test
 
   determine_version:
     name: Detect version bump
@@ -384,31 +369,14 @@ jobs:
 
           tag="${TAG_NAME:-}"
           previous_tag="${PREVIOUS_TAG:-}"
-          merged_json="${MERGED_PRS:-[]}"
-          [ -z "$merged_json" ] && merged_json='[]'
-
-          if [ "$merged_json" = "[]" ]; then
-            echo "No merged PRs provided; collecting between ${previous_tag}...${tag}"
-            if [ -n "$previous_tag" ]; then
-              merged_entries=()
-              commit_messages=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${previous_tag}...${tag}" --jq '.commits[].commit.message' 2>/dev/null || true)
-              pr_numbers=$(grep -oE '#[0-9]+' <<<"$commit_messages" | tr -d '#' | sort -u || true)
-              for pr_number in $pr_numbers; do
-                pr_json=$(gh pr view "$pr_number" -R "$GITHUB_REPOSITORY" --json number,title,author --jq '{number:.number,title:.title,author:(.author.login // "bot")}' 2>/dev/null || true)
-                [ -n "$pr_json" ] && merged_entries+=("$pr_json")
-              done
-              if [ "${#merged_entries[@]}" -gt 0 ]; then
-                merged_json=$(printf '%s\n' "${merged_entries[@]}" | jq -s 'unique_by(.number)')
-              fi
-            fi
-          fi
+          merged_prs="${MERGED_PRS:-[]}"
 
           changes=$(jq -r --arg repo "$GITHUB_REPOSITORY" '
             if length == 0 then "" else
               map("- " + (.title // ("Pull request #" + .number)) + " by @" + ((.author // "bot")) +
                   " in [#" + .number + "](https://github.com/" + $repo + "/pull/" + .number + ")")
               | .[]
-            end' <<<"$merged_json" || true)
+            end' <<<"$merged_prs" || true)
 
           {
             echo "## What's Changed"

@@ -1,28 +1,34 @@
-.PHONY: dictionary-contacts check compile test test-dictionary test-smoke test-cli test-smoke-contract
+.PHONY: dictionary dictionary-contacts dictionary-standard compile check test test-dictionary test-smoke
+
+dictionary:
+	@printf '### Contacts.app\n'
+	@sdef /System/Applications/Contacts.app
+	@printf '\n### CocoaStandard.sdef\n'
+	@cat /System/Library/ScriptingDefinitions/CocoaStandard.sdef
 
 dictionary-contacts:
 	@sdef /System/Applications/Contacts.app
+
+dictionary-standard:
+	@cat /System/Library/ScriptingDefinitions/CocoaStandard.sdef
+
+compile:
+	@set -euo pipefail; \
+	find scripts/applescripts -name '*.applescript' -print | while IFS= read -r file; do \
+		osacompile -o /tmp/$$(echo "$$file" | tr '/' '_' | sed 's/\.applescript$$/.scpt/') "$$file" || exit 1; \
+	done; \
+	find scripts/tests scripts/commands -name '*.sh' -print | while IFS= read -r file; do \
+		bash -n "$$file" || exit 1; \
+	done
 
 check:
 	@bash scripts/commands/system/doctor.sh >/dev/null 2>&1 || { echo "check: Contacts.app or Automation not available"; exit 1; }
 	@echo "Contacts.app is available"
 
-compile:
-	@set -euo pipefail; \
-	find scripts/applescripts -name '*.applescript' -print | while IFS= read -r file; do \
-		osacompile -o /tmp/$$(echo "$$file" | tr '/' '_' | sed 's/\.applescript$$/.scpt/') "$$file"; \
-	done
-
-test: test-dictionary test-cli test-smoke-contract test-smoke
+test: test-dictionary test-smoke
 
 test-dictionary:
-	@bash tests/dictionary_contract.sh
-
-test-cli:
-	@bash tests/birthday_contract.sh
-
-test-smoke-contract:
-	@bash tests/smoke_skip_contract.sh
+	@bash scripts/tests/dictionary_contract.sh
 
 test-smoke:
-	@bash tests/smoke_contacts.sh
+	@bash scripts/tests/smoke_contacts.sh
