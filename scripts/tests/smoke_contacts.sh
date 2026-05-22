@@ -2,11 +2,10 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONTACT_CLI="${CONTACT_CLI:-$ROOT_DIR/scripts/commands/contact}"
 GROUP_CLI="${GROUP_CLI:-$ROOT_DIR/scripts/commands/group/list.sh}"
 SYSTEM_CLI="${SYSTEM_CLI:-$ROOT_DIR/scripts/commands/system/doctor.sh}"
-LEGACY_CLI="${LEGACY_CLI:-$ROOT_DIR/scripts/contacts.sh}"
 
 assert_success_json() {
   local output="$1"
@@ -62,9 +61,6 @@ if [ -n "$first_name" ]; then
   search_output="$(bash "$CONTACT_CLI/search.sh" --field name --limit 5 "$search_term")"
   assert_success_json "$search_output"
 fi
-
-legacy_groups_output="$(bash "$LEGACY_CLI" groups)"
-assert_success_json "$legacy_groups_output"
 
 set +e
 missing_output="$(bash "$CONTACT_CLI/get.sh" "__CODEX_CONTACT_DOES_NOT_EXIST__" 2>&1)"

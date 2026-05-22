@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Compatibility wrapper for the older single-entrypoint Contacts CLI.
-# Public commands live under scripts/commands/.
 
-set -euo pipefail
+# Shared helpers for macOS Contacts skill public commands.
+# Keep common.sh small and focused on reusable shell helpers.
+# Do not put command-specific business logic here.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APPLEScript_DIR="$SCRIPT_DIR/applescripts/contact"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+APPLE_SCRIPT_DIR="$ROOT_DIR/scripts/applescripts/contact"
 
 json_escape() {
   local s="${1-}"
@@ -17,7 +17,7 @@ json_escape() {
   printf '%s' "$s"
 }
 
-json_error() {
+json_fail() {
   printf '{"success":false,"error":"%s"}\n' "$(json_escape "$1")"
   exit 1
 }
@@ -25,19 +25,19 @@ json_error() {
 require_option_value() {
   local flag="$1"
   local value="${2-}"
-  [ -n "$value" ] || json_error "Missing value for $flag"
+  [ -n "$value" ] || json_fail "Missing value for $flag"
 }
 
 validate_positive_int() {
   local flag="$1"
   local value="$2"
-  [[ "$value" =~ ^[0-9]+$ ]] || json_error "Invalid $flag: $value"
-  [ "$value" -ge 1 ] || json_error "Invalid $flag: $value"
+  [[ "$value" =~ ^[0-9]+$ ]] || json_fail "Invalid $flag: $value"
+  [ "$value" -ge 1 ] || json_fail "Invalid $flag: $value"
 }
 
 validate_birthday() {
   local value="$1"
-  [[ "$value" =~ ^([0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2})$ ]] || json_error "Invalid --birthday: $value. Use MM-DD or YYYY-MM-DD"
+  [[ "$value" =~ ^([0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2})$ ]] || json_fail "Invalid --birthday: $value. Use MM-DD or YYYY-MM-DD"
 }
 
 assert_no_conflict() {
@@ -45,7 +45,7 @@ assert_no_conflict() {
   local clear_flag="$2"
   local label="$3"
   if [ "$set_flag" = "true" ] && [ "$clear_flag" = "true" ]; then
-    json_error "Conflicting options for $label"
+    json_fail "Conflicting options for $label"
   fi
 }
 
@@ -53,15 +53,13 @@ run_applescript() {
   local output
 
   if ! output="$("$@" 2>&1)"; then
-    json_error "$output"
+    json_fail "$output"
   fi
 
   printf '%s\n' "$output"
 
   case "$output" in
-    *'"success": false'*|*'"success":false'*)
-      exit 1
-      ;;
+    *'"success": false'*|*'"success":false'*) exit 1 ;;
   esac
 }
 
@@ -69,11 +67,13 @@ run_contacts_applescript() {
   local operation="$1"
   shift
 
-  local script_path="$APPLEScript_DIR/${operation}.applescript"
-  [ -f "$script_path" ] || json_error "Missing AppleScript entrypoint: $script_path"
+  local script_path="$APPLE_SCRIPT_DIR/${operation}.applescript"
+  [ -f "$script_path" ] || json_fail "Missing AppleScript entrypoint: $script_path"
 
   run_applescript osascript "$script_path" "$@"
 }
+
+# --- Command implementations ---
 
 cmd_search() {
   local field="all"
@@ -101,7 +101,7 @@ cmd_search() {
         break
         ;;
       -*)
-        json_error "Unknown option for search: $1"
+        json_fail "Unknown option for search: $1"
         ;;
       *)
         break
@@ -110,11 +110,11 @@ cmd_search() {
   done
 
   local query="${*:-}"
-  [ -z "$query" ] && json_error "Usage: contacts.sh search [--field name|phone|email|org|all] [--limit N] [--exact] <query>"
+  [ -z "$query" ] && json_fail "Usage: search [--field name|phone|email|org|all] [--limit N] [--exact] <query>"
 
   case "$field" in
     all|name|phone|email|org|organization) ;;
-    *) json_error "Invalid --field: $field" ;;
+    *) json_fail "Invalid --field: $field" ;;
   esac
 
   [ "$field" = "organization" ] && field="org"
@@ -140,7 +140,7 @@ cmd_get() {
         break
         ;;
       -*)
-        json_error "Unknown option for get: $1"
+        json_fail "Unknown option for get: $1"
         ;;
       *)
         break
@@ -152,7 +152,7 @@ cmd_get() {
     selector="${*:-}"
   fi
 
-  [ -z "$selector" ] && json_error "Usage: contacts.sh get [--id <contact-id>] <full-name>"
+  [ -z "$selector" ] && json_fail "Usage: get [--id <contact-id>] <full-name>"
 
   run_contacts_applescript get "$selector_mode" "$selector"
 }
@@ -178,10 +178,10 @@ cmd_list() {
         break
         ;;
       -*)
-        json_error "Unknown option for list: $1"
+        json_fail "Unexpected argument for list: $1"
         ;;
       *)
-        json_error "Unexpected argument for list: $1"
+        json_fail "Unexpected argument for list: $1"
         ;;
     esac
   done
@@ -241,15 +241,15 @@ cmd_add() {
         break
         ;;
       -*)
-        json_error "Unknown option for add: $1"
+        json_fail "Unknown option for add: $1"
         ;;
       *)
-        json_error "Unexpected argument for add: $1"
+        json_fail "Unexpected argument for add: $1"
         ;;
     esac
   done
 
-  [ -z "$first" ] && [ -z "$last" ] && json_error "Usage: contacts.sh add --first <name> --last <name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>]"
+  [ -z "$first" ] && [ -z "$last" ] && json_fail "Usage: add --first <name> --last <name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>]"
   [ -n "$birthday" ] && validate_birthday "$birthday"
 
   run_contacts_applescript add "$first" "$last" "$phone" "$email" "$org" "$title" "$birthday"
@@ -307,11 +307,11 @@ cmd_edit() {
         break
         ;;
       -*)
-        json_error "Unknown option for edit: $1"
+        json_fail "Unknown option for edit: $1"
         ;;
       *)
         if [[ -n "$selector" && "$selector_mode" == "id" ]]; then
-          json_error "Unexpected argument for edit: $1"
+          json_fail "Unexpected argument for edit: $1"
         fi
         selector="${selector:+$selector }$1"
         shift
@@ -319,9 +319,9 @@ cmd_edit() {
     esac
   done
 
-  [ -z "$selector" ] && json_error "Usage: contacts.sh edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>] [--clear-birthday]"
+  [ -z "$selector" ] && json_fail "Usage: edit [--id <contact-id>] <full-name> [--phone <num>] [--email <addr>] [--org <company>] [--title <title>] [--birthday <MM-DD|YYYY-MM-DD>] [--clear-birthday]"
   assert_no_conflict "${birthday:+true}" "$clear_birthday" "--birthday"
-  [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && [ -z "$birthday" ] && [ "$clear_birthday" != "true" ] && json_error "Nothing to update. Provide at least one of --phone, --email, --org, --title, --birthday, --clear-birthday"
+  [ -z "$phone" ] && [ -z "$email" ] && [ -z "$org" ] && [ -z "$title" ] && [ -z "$birthday" ] && [ "$clear_birthday" != "true" ] && json_fail "Nothing to update. Provide at least one of --phone, --email, --org, --title, --birthday, --clear-birthday"
   [ -n "$birthday" ] && validate_birthday "$birthday"
 
   run_contacts_applescript edit "$selector_mode" "$selector" "$phone" "$email" "$org" "$title" "$birthday" "$clear_birthday"
@@ -344,11 +344,11 @@ cmd_delete() {
         break
         ;;
       -*)
-        json_error "Unknown option for delete: $1"
+        json_fail "Unknown option for delete: $1"
         ;;
       *)
         if [[ -n "$selector" && "$selector_mode" == "id" ]]; then
-          json_error "Unexpected argument for delete: $1"
+          json_fail "Unexpected argument for delete: $1"
         fi
         selector="${selector:+$selector }$1"
         shift
@@ -356,7 +356,7 @@ cmd_delete() {
     esac
   done
 
-  [ -z "$selector" ] && json_error "Usage: contacts.sh delete [--id <contact-id>] <full-name>"
+  [ -z "$selector" ] && json_fail "Usage: delete [--id <contact-id>] <full-name>"
 
   run_contacts_applescript delete "$selector_mode" "$selector"
 }
@@ -368,19 +368,3 @@ cmd_groups() {
 cmd_doctor() {
   run_contacts_applescript doctor
 }
-
-# --- Main dispatch ---
-CMD="${1:-}"
-shift || true
-
-case "$CMD" in
-  search)  cmd_search "$@" ;;
-  get)     cmd_get "$@" ;;
-  list)    cmd_list "$@" ;;
-  add)     cmd_add "$@" ;;
-  edit)    cmd_edit "$@" ;;
-  delete)  cmd_delete "$@" ;;
-  groups)  cmd_groups ;;
-  doctor)  cmd_doctor ;;
-  *)       json_error "Unknown command: $CMD. Available: search, get, list, add, edit, delete, groups, doctor" ;;
-esac

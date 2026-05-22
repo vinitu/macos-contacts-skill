@@ -7,19 +7,10 @@ description: Manage macOS Contacts.app — search, view, create, edit, and delet
 
 Use this skill when the task is about Apple Contacts.app on macOS.
 
-## Overview
-
-- Public interface: `scripts/commands`
-- Internal backend: `scripts/applescripts/contact`
-- Output: JSON with a stable `{"success": ...}` envelope
-- Installed global skill directory: `~/.agents/skills/macos-contacts`
-- `skills check` and `skills update` may refer to the upstream package name `apple-contacts` from `vinitu/apple-contacts-skill`
-
 ## Main Rule
 
 Use only `scripts/commands`.
-Do not call `scripts/applescripts/contact` directly.
-Do not use `scripts/contacts.sh` in skill instructions; it is kept only as a compatibility wrapper.
+Do not call `scripts/applescripts` directly.
 
 ## Requirements
 
@@ -30,6 +21,8 @@ Do not use `scripts/contacts.sh` in skill instructions; it is kept only as a com
 
 ## Public Interface
 
+Run commands from `scripts/commands`:
+
 - `scripts/commands/contact/search.sh`
 - `scripts/commands/contact/get.sh`
 - `scripts/commands/contact/list.sh`
@@ -38,8 +31,6 @@ Do not use `scripts/contacts.sh` in skill instructions; it is kept only as a com
 - `scripts/commands/contact/delete.sh`
 - `scripts/commands/group/list.sh`
 - `scripts/commands/system/doctor.sh`
-
-`add.sh` keeps the old verb `add` to preserve compatibility with older callers.
 
 ## Output Rules
 
@@ -53,32 +44,32 @@ Do not use `scripts/contacts.sh` in skill instructions; it is kept only as a com
 ### Contacts
 
 ```bash
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/search.sh --field name --limit 10 "John"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/search.sh --field email --exact "john@example.com"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/get.sh "John Doe"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/get.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/list.sh --limit 20
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/list.sh --group "Work"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/add.sh --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme" --birthday "04-20"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/add.sh --first "John" --last "Doe" --birthday "1988-04-20"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh "John Doe" --phone "+48111222333"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh "John Doe" --birthday "04-20"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --birthday "1988-04-20"
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --clear-birthday
-bash ~/.agents/skills/macos-contacts/scripts/commands/contact/delete.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+scripts/commands/contact/search.sh --field name --limit 10 "John"
+scripts/commands/contact/search.sh --field email --exact "john@example.com"
+scripts/commands/contact/get.sh "John Doe"
+scripts/commands/contact/get.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
+scripts/commands/contact/list.sh --limit 20
+scripts/commands/contact/list.sh --group "Work"
+scripts/commands/contact/add.sh --first "John" --last "Doe" --phone "+48123456789" --email "john@example.com" --org "Acme" --birthday "04-20"
+scripts/commands/contact/add.sh --first "John" --last "Doe" --birthday "1988-04-20"
+scripts/commands/contact/edit.sh "John Doe" --phone "+48111222333"
+scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --email "new@example.com"
+scripts/commands/contact/edit.sh "John Doe" --birthday "04-20"
+scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --birthday "1988-04-20"
+scripts/commands/contact/edit.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson" --clear-birthday
+scripts/commands/contact/delete.sh --id "23B708DC-4556-41E3-8738-89867826B760:ABPerson"
 ```
 
 ### Groups
 
 ```bash
-bash ~/.agents/skills/macos-contacts/scripts/commands/group/list.sh
+scripts/commands/group/list.sh
 ```
 
 ### System
 
 ```bash
-bash ~/.agents/skills/macos-contacts/scripts/commands/system/doctor.sh
+scripts/commands/system/doctor.sh
 ```
 
 ## JSON Contract

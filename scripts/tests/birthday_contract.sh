@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONTACT_ADD="$ROOT_DIR/scripts/commands/contact/add.sh"
 CONTACT_EDIT="$ROOT_DIR/scripts/commands/contact/edit.sh"
 
