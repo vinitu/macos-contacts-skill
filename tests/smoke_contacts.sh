@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTACT_CLI="${CONTACT_CLI:-$ROOT_DIR/scripts/commands/contact}"
 GROUP_CLI="${GROUP_CLI:-$ROOT_DIR/scripts/commands/group/list.sh}"
 SYSTEM_CLI="${SYSTEM_CLI:-$ROOT_DIR/scripts/commands/system/doctor.sh}"
