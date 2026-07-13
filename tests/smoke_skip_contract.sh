@@ -27,7 +27,7 @@ output="$(
   CONTACT_CLI="$tmpdir" \
   GROUP_CLI="$tmpdir/unexpected.sh" \
   SYSTEM_CLI="$tmpdir/doctor.sh" \
-  bash "$ROOT_DIR/scripts/tests/smoke_contacts.sh"
+  bash "$ROOT_DIR/tests/smoke_contacts.sh"
 )"
 
 printf '%s\n' "$output" | grep -q 'Skipping smoke tests: Contacts automation unavailable.' || {
