@@ -35,7 +35,7 @@ jobs:
             README.md
             SKILL.md
             Makefile
-            scripts/contacts.sh
+            scripts/commands/_lib/common.sh
             tests/dictionary_contract.sh
             tests/smoke_contacts.sh
           )
