@@ -28,6 +28,13 @@ require_option_value() {
   [ -n "$value" ] || json_fail "Missing value for $flag"
 }
 
+# Validate a required positional argument. Usage: require_arg <value> <label>
+require_arg() {
+  local value="${1-}"
+  local label="$2"
+  [ -n "$value" ] || json_fail "Missing required argument: $label"
+}
+
 validate_positive_int() {
   local flag="$1"
   local value="$2"
